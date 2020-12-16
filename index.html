@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .row {
+        display: flex;
+        justify-content: stretch;
+      }
+      h4 {
+        text-align: center;
+      }
+      textarea {
+        display: block;
+        width: 444px;
+      }
+    </style>
+  </head>
+  <body>
+    <h4 id="flash" style="visibility: hidden">Object Copied to clipboard</h4>
+    <button style="width: 50%;margin: 0 auto; display: block;">CLEAR ALL</button>
+    <div class="row">
+      <div>
+        <h3>English</h3>
+        <textarea name="englishWords" id="englishWords" rows="30"></textarea>
+      </div>
+      <div>
+        <h3>Translations</h3>
+        <textarea name="translations" id="translations" rows="30"></textarea>
+      </div>
+      <div>
+        <h3>Merged</h3>
+        <textarea name="mergedData" id="mergedData" rows="30"></textarea>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        function getID(k) {
+          return k
+            .replace(/[^a-z0-9]/gim, " ")
+            .trim()
+            .replace(/\s+/g, "_")
+            .toUpperCase();
+        }
+        function getProcessdLines(v) {
+          return Array.from(new Set(v))
+            .filter((k) => k !== "withTranslations.js:12 Console was cleared")
+            .map((s) => s.replace("withTranslations.js:27", "").trim());
+        }
+
+        function setEngWords(v) {
+          var lines = v.split("\n");
+
+          englishWords.value = getProcessdLines(lines).join("\n");
+        }
+        function getPro(v, trans) {
+          var lines = v.split("\n");
+          var transes = trans.split("\n");
+          var fl = getProcessdLines(lines);
+          return JSON.stringify(
+            fl.reduce((res, line, index) => {
+              const sl = line.replace("withTranslations.js:26", "").trim();
+              return { ...res, [getID(sl)]: transes[index] };
+            }, {}),
+            null,
+            2
+          );
+        }
+        var englishWords = document.getElementById("englishWords");
+        var translations = document.getElementById("translations");
+        var mergedData = document.getElementById("mergedData");
+        var flash = document.getElementById("flash");
+        var clear = document.querySelector("button");
+        clear.onclick = () => {
+          [englishWords, translations, mergedData].forEach(
+            (e) => (e.value = "")
+          );
+        };
+        englishWords.onpaste = function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          clipboardData = e.clipboardData || window.clipboardData;
+          pastedData = clipboardData.getData("Text");
+
+          setEngWords(pastedData);
+        };
+        translations.onpaste = function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+
+          clipboardData = e.clipboardData || window.clipboardData;
+          pastedData = clipboardData.getData("Text");
+          translations.value = pastedData;
+          mergedData.value = getPro(englishWords.value, pastedData);
+        };
+
+        mergedData.onfocus = function (e) {
+            e.target.value=e.target.value.replace("{","").replace("}","").trim();
+          e.target.select();
+          e.target.setSelectionRange(0, 99999); /* For mobile devices */
+
+          /* Copy the text inside the text field */
+          document.execCommand("copy");
+          flash.style.visibility = "visible";
+          setTimeout(() => {
+            flash.style.visibility = "hidden";
+          }, 3000);
+        };
+      })();
+    </script>
+  </body>
+</html>
